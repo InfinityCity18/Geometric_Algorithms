@@ -1,3 +1,4 @@
+use ndarray_linalg::Determinant;
 use plotters::prelude::*;
 use rand::{
     SeedableRng,
@@ -6,11 +7,11 @@ use rand::{
 };
 use std::ops::Range;
 
-type Float = f64;
-const PI: Float = std::f64::consts::PI;
+type Float = f32;
+const PI: Float = std::f32::consts::PI;
 const A: (Float, Float) = (-1.0, 0.0);
 const B: (Float, Float) = (1.0, 0.1);
-const EPSILON: Float = 1e-16;
+const EPSILON: Float = 1e-12;
 
 const SEED_X_1: u64 = 117;
 const SEED_Y_1: u64 = 2139;
@@ -29,7 +30,7 @@ fn main() {
         let range = -1000.0..1000.0;
         let points = new_points(range.clone(), 100000, SEED_X_1, SEED_Y_1);
         draw_unprocessed("plots/1_up.png", points.clone(), -1200.0..1200.0).unwrap();
-        let (l, r, colin) = draw_processed("plots/1_p.png", points, -1200.0..1200.0, EPSILON, det_3x3).unwrap();
+        let (l, r, colin) = draw_processed("plots/1_p.png", points, -1200.0..1200.0, EPSILON, det_3x3_lib).unwrap();
         println!("SET 1");
         println!("Points on the left: {}", l);
         println!("Points on the right: {}", r);
@@ -41,7 +42,7 @@ fn main() {
         let range = -1e14..1e14;
         let points = new_points(range.clone(), 100000, SEED_X_2, SEED_Y_2);
         draw_unprocessed("plots/2_up.png", points.clone(), -1e14-2e13..1e14+2e13).unwrap();
-        let (l, r, colin) = draw_processed("plots/2_p.png", points, -1e14-2e13..1e14+2e13, EPSILON, det_3x3).unwrap();
+        let (l, r, colin) = draw_processed("plots/2_p.png", points, -1e14-2e13..1e14+2e13, EPSILON, det_3x3_lib).unwrap();
         println!("SET 2");
         println!("Points on the left: {}", l);
         println!("Points on the right: {}", r);
@@ -53,7 +54,7 @@ fn main() {
         let r = 100.0;
         let points = new_points_circle(r, 1000, SEED_R_3);
         draw_unprocessed("plots/3_up.png", points.clone(), -120.0..120.0).unwrap();
-        let (l, r, colin) = draw_processed("plots/3_p.png", points, -120.0..120.0, EPSILON, det_3x3).unwrap();
+        let (l, r, colin) = draw_processed("plots/3_p.png", points, -120.0..120.0, EPSILON, det_3x3_lib).unwrap();
         println!("SET 3");
         println!("Points on the left: {}", l);
         println!("Points on the right: {}", r);
@@ -65,7 +66,7 @@ fn main() {
         let range= -1000.0..1000.0;
         let points = new_points_line(range, 1000, SEED_X_4);
         draw_unprocessed("plots/4_up.png", points.clone(), -1200.0..1200.0).unwrap();
-        let (l, r, colin) = draw_processed("plots/4_p.png", points, -1200.0..1200.0, EPSILON, det_3x3).unwrap();
+        let (l, r, colin) = draw_processed("plots/4_p.png", points, -1200.0..1200.0, EPSILON, det_2x2_lib).unwrap();
         println!("SET 4");
         println!("Points on the left: {}", l);
         println!("Points on the right: {}", r);
@@ -86,6 +87,18 @@ fn det_2x2(a: (Float, Float), b: (Float, Float), c: (Float, Float)) -> Float {
     let xy = x * y;
     let zw = z * w;
     return xy - zw;
+}
+
+fn det_2x2_lib(a: (Float, Float), b: (Float, Float), c: (Float, Float)) -> Float {
+    use ndarray::array;
+    let m2 = array![[a.0 - c.0, a.1 - c.1], [b.0 - c.0, b.1 - c.1]];
+    m2.det().unwrap()
+}
+
+fn det_3x3_lib(a: (Float, Float), b: (Float, Float), c: (Float, Float)) -> Float {
+    use ndarray::array;
+    let m3 = array![[a.0, a.1, 1.0], [b.0, b.1, 1.0], [c.0, c.1, 1.0]];
+    m3.det().unwrap()
 }
 
 fn eq_float(a: Float, b: Float, epsilon: Float) -> bool {
