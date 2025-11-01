@@ -1,0 +1,22 @@
+base = false
+anim = false
+
+[set_a]
+range = [-16000.0, 50000.0]
+n = 50
+
+[set_b]
+origin = [3.0, -100.0]
+radius = 104.0
+n = 30
+
+[set_c]
+p1 = [-40.0, -99.0]
+p2 = [1000.0, -80.0]
+n = 100
+
+[set_d]
+p1 = [-3.0, 2.0]
+len = 15.0
+n_side = 25
+n_diag = 20
