@@ -7,7 +7,7 @@ const SEED_A: u64 = 4857;
 const SEED_B: u64 = 41;
 const SEED_C: u64 = 412;
 const SEED_D: u64 = 241;
-const EPSILON: f64 = 1e-16;
+const EPSILON: f64 = 0.0;
 const LABEL_MUL: f64 = 1.2;
 
 static ANIM: OnceLock<bool> = OnceLock::new();
@@ -70,8 +70,8 @@ fn graham(mut points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plot
         })
         .unwrap()
         .to_owned();
-    points.remove(points.iter().position(|x| *x == start).unwrap());
-    //points.sort_unstable_by(|x,y| orient(start, *x, *y));
+    //points.remove(points.iter().position(|x| *x == start).unwrap());
+    //points.sort_by(|x,y| orient(start, *x, *y));
     points = mergesort(points, start);
     let mut stack = vec![start, points[0], points[1]];
     let mut t = 2;
@@ -264,7 +264,15 @@ fn eq_float(a: f64, b: f64, epsilon: f64) -> bool {
 fn orient(p0: (f64, f64), b: (f64, f64), c: (f64, f64)) -> Ordering {
     let d = det_3x3(p0, b, c);
     if eq_float(d, 0.0, EPSILON) {
-        return Ordering::Equal;
+        let dist_b = (b.0 - p0.0).powi(2) + (b.1 - p0.1).powi(2);
+        let dist_c = (c.0 - p0.0).powi(2) + (c.1 - p0.1).powi(2);
+        if dist_b < dist_c {
+            Ordering::Less
+        } else if dist_b > dist_c {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
     } else if d > 0.0 {
         return Ordering::Less;
     } else {
@@ -288,13 +296,10 @@ fn merge(left: Vec<(f64, f64)>, right: Vec<(f64, f64)>, p0: (f64, f64)) -> Vec<(
     let mut j = 0;
     while i < left.len() && j < right.len() {
         if orient(p0, left[i], right[j]) == Ordering::Equal {
-            if left[i].0 < right[j].0 {
-                merged.push(left[i]);
-                i += 1;
-            } else {
-                merged.push(right[j]);
-                j += 1;
-            }
+            merged.push(left[i]);
+            i += 1;
+            merged.push(right[j]);
+            j += 1;
         } else if orient(p0, left[i], right[j]) == Ordering::Less {
             merged.push(left[i]);
             i += 1;
@@ -406,27 +411,22 @@ mod point_gen {
         let uni_dist_y = Uniform::new_inclusive(p1.1, p1.1 + side_len).unwrap();
         let mut x_rand = SmallRng::seed_from_u64(seed);
         let mut y_rand = SmallRng::seed_from_u64(seed + 1);
-        let mut choice_rand = SmallRng::seed_from_u64(seed + 2);
         let mut x_iter = uni_dist_x.sample_iter(&mut x_rand);
         let mut y_iter = uni_dist_y.sample_iter(&mut y_rand);
         let mut v = vec![p1, (p1.0 + side_len, p1.1), (p1.0, p1.1 + side_len), (p1.0 + side_len, p1.1 + side_len)]; 
         for _ in 0..n_side {
-            let choice: usize = *[0, 1].choose(&mut choice_rand).unwrap();
-            v.push(if choice == 0 {
+            v.push(
                 (x_iter.next().unwrap(), p1.1)
-            } else {
+            );
+            v.push(
                 (p1.0, y_iter.next().unwrap())
-            });
+            );
         }
         for _ in 0..n_diag {
-            let choice: usize = *[0, 1].choose(&mut choice_rand).unwrap();
-            v.push(if choice == 0 {
-                let a = x_iter.next().unwrap();
-                (a, a)
-            } else {
-                let a = y_iter.next().unwrap();
-                (a, p1.0 + side_len - a)
-            });
+            let a = x_iter.next().unwrap();
+            v.push((a, p1.1 + (a - p1.0)));
+            let a = x_iter.next().unwrap();
+            v.push((a, p1.1 + side_len - (a - p1.0)));
         }
         return v;
     }
