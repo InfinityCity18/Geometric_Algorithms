@@ -264,15 +264,7 @@ fn eq_float(a: f64, b: f64, epsilon: f64) -> bool {
 fn orient(p0: (f64, f64), b: (f64, f64), c: (f64, f64)) -> Ordering {
     let d = det_3x3(p0, b, c);
     if eq_float(d, 0.0, EPSILON) {
-        let dist_b = (b.0 - p0.0).powi(2) + (b.1 - p0.1).powi(2);
-        let dist_c = (c.0 - p0.0).powi(2) + (c.1 - p0.1).powi(2);
-        if dist_b < dist_c {
-            Ordering::Less
-        } else if dist_b > dist_c {
-            Ordering::Greater
-        } else {
-            Ordering::Equal
-        }
+        return Ordering::Equal;
     } else if d > 0.0 {
         return Ordering::Less;
     } else {
@@ -295,11 +287,16 @@ fn merge(left: Vec<(f64, f64)>, right: Vec<(f64, f64)>, p0: (f64, f64)) -> Vec<(
     let mut i = 0;
     let mut j = 0;
     while i < left.len() && j < right.len() {
-        if orient(p0, left[i], right[j]) == Ordering::Equal {
-            merged.push(left[i]);
-            i += 1;
-            merged.push(right[j]);
-            j += 1;
+        if orient(p0, left[i], right[j]) == Ordering::Equal { //bierzemy tylko dalszy punkt bo sa wspolliniowe
+            if left[i].0 > right[j].0 {
+                merged.push(left[i]);
+                i += 1;
+                j += 1;
+            } else {
+                merged.push(right[j]);
+                i += 1;
+                j += 1;
+            }
         } else if orient(p0, left[i], right[j]) == Ordering::Less {
             merged.push(left[i]);
             i += 1;
@@ -318,6 +315,7 @@ fn merge(left: Vec<(f64, f64)>, right: Vec<(f64, f64)>, p0: (f64, f64)) -> Vec<(
     }
     return merged;
 }
+
 
 mod point_gen {
     use rand::{
