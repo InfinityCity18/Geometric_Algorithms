@@ -1,18 +1,21 @@
+#![feature(test)]
+
 use plotters::prelude::*;
 use serde::Deserialize;
-use std::{cmp::{Ordering, min}, ops::Range, sync::OnceLock};
+use std::{cmp::{Ordering, min}, io::Write, ops::Range, sync::OnceLock};
 use crate::point_gen::*;
 
 const SEED_A: u64 = 4857;
 const SEED_B: u64 = 41;
 const SEED_C: u64 = 412;
 const SEED_D: u64 = 241;
-const EPSILON: f64 = 1e-16;
+const EPSILON: f64 = 1e-10;
 const LABEL_MUL: f64 = 1.2;
 
 static ANIM: OnceLock<bool> = OnceLock::new();
 
 fn main() {
+    create_dirs();
 
     let conf: Config = config::Config::builder().add_source(config::File::with_name("config.toml")).build().unwrap().try_deserialize().unwrap();
     ANIM.set(conf.anim).unwrap();
@@ -29,8 +32,8 @@ fn main() {
             let root_graham = BitMapBackend::gif(format!("gifs/graham/{}_g_anim.gif", name), (512,512), 0).unwrap().into_drawing_area();
             let root_jarvis = BitMapBackend::gif(format!("gifs/jarvis/{}_j_anim.gif", name), (512,512), 0).unwrap().into_drawing_area();
             let _ = draw_set(&format!("sets/{}.png", name), v.clone(), label_ranges.clone());
-            let _ = draw_set_convex(&format!("graham/{}_g.png", name), v.clone(), graham(v.clone(), root_graham, label_ranges.clone()), label_ranges.clone());
-            let _ = draw_set_convex(&format!("jarvis/{}_j.png", name), v.clone(), jarvis(v, root_jarvis, label_ranges.clone()), label_ranges.clone());
+            let _ = draw_set_convex(&format!("graham/{}_g_convex_hull.txt", name), &format!("graham/{}_g.png", name), v.clone(), graham(v.clone(), root_graham, label_ranges.clone()), label_ranges.clone());
+            let _ = draw_set_convex(&format!("jarvis/{}_j_convex_hull.txt", name), &format!("jarvis/{}_j.png", name), v.clone(), jarvis(v, root_jarvis, label_ranges.clone()), label_ranges.clone());
             println!("{name} done!");
         }
     }
@@ -52,14 +55,16 @@ fn main() {
         let root_graham = BitMapBackend::gif(format!("custom/gifs/graham/{}_g_anim.gif", name), (512,512), 0).unwrap().into_drawing_area();
         let root_jarvis = BitMapBackend::gif(format!("custom/gifs/jarvis/{}_j_anim.gif", name), (512,512), 0).unwrap().into_drawing_area();
         let _ = draw_set(&format!("custom/sets/{}.png", name), v.clone(), label_ranges.clone());
-        let _ = draw_set_convex(&format!("custom/graham/{}_g.png", name), v.clone(), graham(v.clone(), root_graham, label_ranges.clone()), label_ranges.clone());
-        let _ = draw_set_convex(&format!("custom/jarvis/{}_j.png", name), v.clone(), jarvis(v, root_jarvis, label_ranges.clone()), label_ranges.clone());
+        let _ = draw_set_convex(&format!("custom/graham/{}_g_convex_hull.txt", name), &format!("custom/graham/{}_g.png", name), v.clone(), graham(v.clone(), root_graham, label_ranges.clone()), label_ranges.clone());
+        let _ = draw_set_convex(&format!("custom/jarvis/{}_j_convex_hull.txt", name), &format!("custom/jarvis/{}_j.png", name), v.clone(), jarvis(v, root_jarvis, label_ranges.clone()), label_ranges.clone());
         println!("{name} custom done!");
     }
 }
 
 fn graham(mut points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plotters::coord::Shift>, label_ranges: (Range<f64>, Range<f64>)) -> Vec<(f64, f64)> {
-    let start = points
+    let original_pts = points.clone();
+
+    let pivot = points
         .iter()
         .min_by(|a, b| {
             if a.1 == b.1 {
@@ -70,63 +75,92 @@ fn graham(mut points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plot
         })
         .unwrap()
         .to_owned();
-    //points.remove(points.iter().position(|x| *x == start).unwrap());
-    //points.sort_by(|x,y| orient(start, *x, *y));
-    points = mergesort(points, start);
-    let mut stack = vec![start, points[0], points[1]];
-    let mut t = 2;
-    let mut i = 3;
-    while i < points.len() {
 
+    points.retain(|p| *p != pivot);
+
+    points.sort_unstable_by(|a, b| {
+        let d = det_3x3(pivot, *a, *b);
+        if eq_float(d, 0.0, EPSILON) {
+            let da2 = (a.0 - pivot.0).hypot(a.1 - pivot.1);
+            let db2 = (b.0 - pivot.0).hypot(b.1 - pivot.1);
+            da2.partial_cmp(&db2).unwrap()
+        } else if d > 0.0 {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
+    });
+
+    let mut filtered: Vec<(f64, f64)> = Vec::with_capacity(points.len());
+    for p in points.into_iter() {
+        if let Some(last) = filtered.last() {
+            if eq_float(det_3x3(pivot, *last, p), 0.0, EPSILON) {
+                filtered.pop();
+                filtered.push(p);
+                continue;
+            }
+        }
+        filtered.push(p);
+    }
+
+    let mut stack: Vec<(f64, f64)> = vec![pivot, filtered[0], filtered[1]];
+    for p in filtered.iter().skip(2) {
         if *ANIM.get().unwrap() {
             root.fill(&WHITE).unwrap();
             let mut ctx = draw_labels(&root, label_ranges.clone());
             ctx.draw_series(
-                points
-                .iter()
-                .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
+                original_pts
+                    .iter()
+                    .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
             ).unwrap();
             ctx.draw_series(LineSeries::new(stack.iter().cloned(), RED)).unwrap();
             ctx.draw_series(stack.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, RED.filled()))).unwrap();
             root.present().unwrap();
         }
-        let d = det_3x3(stack[t - 1], stack[t], points[i]);
-        if d > 0.0 {
-            stack.push(points[i]);
-            t += 1;
-            i += 1;
-        } 
-        else if eq_float(d, 0.0, EPSILON) {
-            stack.pop();
-            stack.push(points[i]);
-            i += 1;
+
+        while stack.len() >= 2 {
+            let s = stack.len();
+            let d = det_3x3(stack[s - 2], stack[s - 1], *p);
+            if d > EPSILON {
+                break; 
+            } else {
+                stack.pop();
+            }
         }
-        else {
-            stack.pop();
-            t -= 1;
-        }
+        stack.push(*p);
     }
+
     if *ANIM.get().unwrap() {
         root.fill(&WHITE).unwrap();
         let mut ctx = draw_labels(&root, label_ranges.clone());
         ctx.draw_series(
-            points
-            .iter()
-            .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
+            original_pts
+                .iter()
+                .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
         ).unwrap();
-        ctx.draw_series(LineSeries::new(stack.iter().cloned().chain(std::iter::once(stack[0])), RED)).unwrap();
+        ctx.draw_series(LineSeries::new(stack.iter().cloned().chain(std::iter::once(stack[0])) , RED)).unwrap();
         ctx.draw_series(stack.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, RED.filled()))).unwrap();
         for _ in 0..40 {
             root.present().unwrap();
         }
     }
 
-    return stack;
+    stack
 }
 
 fn jarvis(points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plotters::coord::Shift>, label_ranges: (Range<f64>, Range<f64>)) -> Vec<(f64, f64)> {
 
-    let i_0 = points
+    let mut pts = points.clone();
+    // pts.sort_by(|a, b| {
+    //     if eq_float(a.0, b.0, EPSILON) {
+    //         a.1.partial_cmp(&b.1).unwrap()
+    //     } else {
+    //         a.0.partial_cmp(&b.0).unwrap()
+    //     }
+    // });
+    // pts.dedup_by(|a, b| eq_float(a.0, b.0, EPSILON) && eq_float(a.1, b.1, EPSILON));
+
+    let start = pts
         .iter()
         .min_by(|a, b| {
             if a.1 == b.1 {
@@ -137,83 +171,77 @@ fn jarvis(points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plotters
         })
         .unwrap()
         .to_owned();
-    let mut convex_hull = vec![i_0.to_owned()];
-    let mut i = i_0.to_owned();
-    let mut counter = 0;
-    loop {
-        counter += 1;
-        println!("{counter}");
-        let mut min_k = (0.0, 0.0); //inicjalizacja, zmienna zostanie nadpisana
 
-        for (gif_counter, j)  in points.iter().enumerate() {
-            if i == *j {
+    let mut hull: Vec<(f64, f64)> = vec![start];
+    let mut current = start;
+
+    loop {
+        let mut candidate: Option<(f64, f64)> = None;
+        for (anim_counter, &p) in pts.iter().enumerate() {
+            if p == current {
                 continue;
             }
+            if candidate.is_none() {
+                candidate = Some(p);
+                continue;
+            }
+            
+            let cand = candidate.unwrap();
 
-            if gif_counter % 10 == 0 && *ANIM.get().unwrap() {
+            if *ANIM.get().unwrap() && anim_counter % 5 == 0 {
                 root.fill(&WHITE).unwrap();
                 let mut ctx = draw_labels(&root, label_ranges.clone());
                 ctx.draw_series(
-                    points
-                    .iter()
-                    .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
+                    pts
+                        .iter()
+                        .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
                 ).unwrap();
-                ctx.draw_series(LineSeries::new(convex_hull.iter().cloned(), RED)).unwrap();
-                ctx.draw_series(LineSeries::new(vec![*convex_hull.last().unwrap(), *j], BLUE)).unwrap();
-                ctx.draw_series(convex_hull.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, RED.filled()))).unwrap();
+                ctx.draw_series(LineSeries::new(hull.iter().cloned(), RED)).unwrap();
+                ctx.draw_series(LineSeries::new(vec![*hull.last().unwrap(),p], BLUE)).unwrap();
+                ctx.draw_series(hull.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, RED.filled()))).unwrap();
                 root.present().unwrap();
             }
 
-            let d = det_3x3(i, min_k, *j);
-            if d < 0.0 {
-                min_k = *j;
+            let d = det_3x3(current, cand, p);
+            if d > EPSILON {
+                candidate = Some(p);
             } else if eq_float(d, 0.0, EPSILON) {
-                if (j.0 - i.0).powi(2) + (j.1 - i.1).powi(2) > (min_k.0 - i.0).powi(2) + (min_k.1 - i.1).powi(2) {
-                    min_k = *j;
+                let dist_p = (p.0 - current.0).hypot(p.1 - current.1);
+                let dist_c = (cand.0 - current.0).hypot(cand.1 - current.1);
+                if dist_p > dist_c {
+                    candidate = Some(p);
                 }
             }
         }
 
-        convex_hull.push(min_k);
-        i = min_k;
+        let next = match candidate {
+            Some(pt) => pt,
+            None => break,
+        };
 
-        if *ANIM.get().unwrap() {
-            root.fill(&WHITE).unwrap();
-            let mut ctx = draw_labels(&root, label_ranges.clone());
-            ctx.draw_series(
-                points
-                .iter()
-                .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
-            ).unwrap();
-            ctx.draw_series(LineSeries::new(convex_hull.iter().cloned(), RED)).unwrap();
-            ctx.draw_series(convex_hull.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, RED.filled()))).unwrap();
-            root.present().unwrap();
-        }
-
-        if i_0 == i {
-            if *ANIM.get().unwrap() {
-                root.fill(&WHITE).unwrap();
-                let mut ctx = draw_labels(&root, label_ranges.clone());
-                ctx.draw_series(
-                    points
-                    .iter()
-                    .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
-                ).unwrap();
-                ctx.draw_series(LineSeries::new(convex_hull.iter().cloned().chain(std::iter::once(convex_hull[0])), RED)).unwrap();
-                ctx.draw_series(convex_hull.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, RED.filled()))).unwrap();
-                root.present().unwrap();
-            }
+        if next == hull[0] {
             break;
         }
+
+        hull.push(next);
+        current = next;
     }
 
     if *ANIM.get().unwrap() {
+        root.fill(&WHITE).unwrap();
+        let mut ctx = draw_labels(&root, label_ranges.clone());
+        ctx.draw_series(
+            pts
+                .iter()
+                .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
+        ).unwrap();
+        ctx.draw_series(LineSeries::new(hull.iter().cloned().chain(std::iter::once(hull[0])) , RED)).unwrap();
+        ctx.draw_series(hull.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, RED.filled()))).unwrap();
         for _ in 0..20 {
             root.present().unwrap();
         }
     }
-
-    return convex_hull;
+    hull
 }
 
 fn det_3x3(a: (f64, f64), b: (f64, f64), c: (f64, f64)) -> f64 {
@@ -240,58 +268,11 @@ fn orient(p0: (f64, f64), b: (f64, f64), c: (f64, f64)) -> Ordering {
     }
 }
 
-fn mergesort(mut points: Vec<(f64, f64)>, p0: (f64, f64)) -> Vec<(f64, f64)> {
-    if points.len() <= 1 {
-        return points;
-    }
-    let mid = points.len() / 2;
-    let left = mergesort(points.drain(0..mid).collect(), p0);
-    let right = mergesort(points, p0);
-    return merge(left, right, p0);
-}
-
-fn merge(left: Vec<(f64, f64)>, right: Vec<(f64, f64)>, p0: (f64, f64)) -> Vec<(f64, f64)> {
-    let mut merged = Vec::with_capacity(left.len() + right.len());
-    let mut i = 0;
-    let mut j = 0;
-    while i < left.len() && j < right.len() {
-        if orient(p0, left[i], right[j]) == Ordering::Equal {
-            //if left[i].0 > right[j].0
-            if (left[i].0 - p0.0).powi(2) + (left[i].1 - p0.1).powi(2) > (right[j].0 - p0.0).powi(2) + (right[j].1 - p0.1).powi(2) {
-                merged.push(left[i]);
-                i += 1;
-                j += 1;
-            } else {
-                merged.push(right[j]);
-                i += 1;
-                j += 1;
-            }
-        } else if orient(p0, left[i], right[j]) == Ordering::Less {
-            merged.push(left[i]);
-            i += 1;
-        } else {
-            merged.push(right[j]);
-            j += 1;
-        }
-    }
-    while i < left.len() {
-        merged.push(left[i]);
-        i += 1;
-    }
-    while j < right.len() {
-        merged.push(right[j]);
-        j += 1;
-    }
-    return merged;
-}
-
-
 mod point_gen {
     use rand::{
         Rng, SeedableRng,
         distr::{Distribution, StandardUniform, Uniform},
         rngs::SmallRng,
-        seq::IndexedRandom,
     };
 
     pub fn set_a(range: std::ops::Range<f64>, n: usize, seed: u64) -> Vec<(f64, f64)> {
@@ -339,7 +320,6 @@ mod point_gen {
             }
         }
 
-        // dwa punkty jednoznacznie definiuja prostokat z bokami rownoleglymi do obu osi
         let lt = (p1.0.min(p2.0), p1.1.max(p2.1));
         let lb = (p1.0.min(p2.0), p1.1.min(p2.1));
         let _rt = (p1.0.max(p2.0), p1.1.max(p2.1));
@@ -372,7 +352,6 @@ mod point_gen {
         n_diag: usize,
         seed: u64,
     ) -> Vec<(f64, f64)> {
-        // dwa punkty jednoznacznie definiuja prostokat z bokami rownoleglymi do obu osi
 
         let uni_dist_x = Uniform::new_inclusive(p1.0, p1.0 + side_len).unwrap();
         let uni_dist_y = Uniform::new_inclusive(p1.1, p1.1 + side_len).unwrap();
@@ -421,11 +400,18 @@ pub fn draw_set(
 }
 
 pub fn draw_set_convex(
+    convex_filename: &str,
     filename: &str,
     points: Vec<(f64, f64)>,
     convex_hull: Vec<(f64, f64)>,
     label_ranges: (Range<f64>, Range<f64>),
 ) -> Result<(), Box<dyn std::error::Error>> {
+
+    let f = std::fs::File::create(convex_filename).unwrap();
+    for (x, y) in convex_hull.iter() {
+        writeln!(&f, "({}, {})", x, y).unwrap();
+    }
+
     let root = BitMapBackend::new(filename, (512, 512)).into_drawing_area();
     root.fill(&WHITE).unwrap();
 
@@ -504,3 +490,149 @@ struct SetD {
     n_diag: usize,
 }
 
+fn create_dirs() {
+    let dirs = [
+        "gifs/graham",
+        "gifs/jarvis",
+        "sets",
+        "graham",
+        "jarvis",
+        "custom/gifs/graham",
+        "custom/gifs/jarvis",
+        "custom/sets",
+        "custom/graham",
+        "custom/jarvis",
+    ];
+    for dir in dirs.iter() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+}
+mod bench {
+    use crate::*;
+    fn graham_bench(mut points: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
+        let pivot = points
+            .iter()
+            .min_by(|a, b| {
+                if a.1 == b.1 {
+                    a.0.partial_cmp(&b.0).unwrap()
+                } else {
+                    a.1.partial_cmp(&b.1).unwrap()
+                }
+            })
+            .unwrap()
+            .to_owned();
+
+        points.retain(|p| *p != pivot);
+
+        points.sort_unstable_by(|a, b| {
+            let d = det_3x3(pivot, *a, *b);
+            if eq_float(d, 0.0, EPSILON) {
+                let da2 = (a.0 - pivot.0).hypot(a.1 - pivot.1);
+                let db2 = (b.0 - pivot.0).hypot(b.1 - pivot.1);
+                da2.partial_cmp(&db2).unwrap()
+            } else if d > 0.0 {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        });
+
+        let mut filtered: Vec<(f64, f64)> = Vec::with_capacity(points.len());
+        for p in points.into_iter() {
+            if let Some(last) = filtered.last() {
+                if eq_float(det_3x3(pivot, *last, p), 0.0, EPSILON) {
+                    filtered.pop();
+                    filtered.push(p);
+                    continue;
+                }
+            }
+            filtered.push(p);
+        }
+
+        let mut stack: Vec<(f64, f64)> = vec![pivot, filtered[0], filtered[1]];
+        for p in filtered.iter().skip(2) {
+            while stack.len() >= 2 {
+                let s = stack.len();
+                let d = det_3x3(stack[s - 2], stack[s - 1], *p);
+                if d > EPSILON {
+                    break; 
+                } else {
+                    stack.pop();
+                }
+            }
+            stack.push(*p);
+        }
+
+        stack
+    }
+
+    fn jarvis_bench(pts: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
+
+        let start = pts
+            .iter()
+            .min_by(|a, b| {
+                if a.1 == b.1 {
+                    a.0.partial_cmp(&b.0).unwrap()
+                } else {
+                    a.1.partial_cmp(&b.1).unwrap()
+                }
+            })
+            .unwrap()
+            .to_owned();
+
+        let mut hull: Vec<(f64, f64)> = vec![start];
+        let mut current = start;
+
+        loop {
+            let mut candidate: Option<(f64, f64)> = None;
+            for &p in pts.iter() {
+                if p == current {
+                    continue;
+                }
+                if candidate.is_none() {
+                    candidate = Some(p);
+                    continue;
+                }
+                
+                let cand = candidate.unwrap();
+
+                let d = det_3x3(current, cand, p);
+                if d > EPSILON {
+                    candidate = Some(p);
+                } else if eq_float(d, 0.0, EPSILON) {
+                    let dist_p = (p.0 - current.0).hypot(p.1 - current.1);
+                    let dist_c = (cand.0 - current.0).hypot(cand.1 - current.1);
+                    if dist_p > dist_c {
+                        candidate = Some(p);
+                    }
+                }
+            }
+
+            let next = match candidate {
+                Some(pt) => pt,
+                None => break,
+            };
+
+            if next == hull[0] {
+                break;
+            }
+
+            hull.push(next);
+            current = next;
+        }
+
+        hull
+    }
+}
+
+#[cfg(test)]
+mod benches {
+    use crate::bench::*;
+    use crate::*;
+    extern crate test;
+    
+    #[bench]
+    fn graham_benchmark(b: &mut test::Bencher) {
+        println!("w");
+    }
+}
