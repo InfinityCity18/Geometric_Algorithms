@@ -1,13 +1,13 @@
 use plotters::prelude::*;
 use serde::Deserialize;
-use std::{cmp::Ordering, ops::Range, sync::OnceLock};
+use std::{cmp::{Ordering, min}, ops::Range, sync::OnceLock};
 use crate::point_gen::*;
 
 const SEED_A: u64 = 4857;
 const SEED_B: u64 = 41;
 const SEED_C: u64 = 412;
 const SEED_D: u64 = 241;
-const EPSILON: f64 = 0.0;
+const EPSILON: f64 = 1e-16;
 const LABEL_MUL: f64 = 1.2;
 
 static ANIM: OnceLock<bool> = OnceLock::new();
@@ -95,7 +95,8 @@ fn graham(mut points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plot
             stack.push(points[i]);
             t += 1;
             i += 1;
-        } else if eq_float(d, 0.0, EPSILON) {
+        } 
+        else if eq_float(d, 0.0, EPSILON) {
             stack.pop();
             stack.push(points[i]);
             i += 1;
@@ -138,16 +139,14 @@ fn jarvis(points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plotters
         .to_owned();
     let mut convex_hull = vec![i_0.to_owned()];
     let mut i = i_0.to_owned();
-    let mut previous = None;
     let mut counter = 0;
     loop {
         counter += 1;
         println!("{counter}");
         let mut min_k = (0.0, 0.0); //inicjalizacja, zmienna zostanie nadpisana
-        let mut min_ang = f64::MAX;
 
         for (gif_counter, j)  in points.iter().enumerate() {
-            if i == *j || (previous.is_some() && previous.unwrap() == *j) {
+            if i == *j {
                 continue;
             }
 
@@ -165,35 +164,17 @@ fn jarvis(points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plotters
                 root.present().unwrap();
             }
 
-            if let Some(prev) = previous {
-                let angle = get_angle_ord(prev, i, *j);
-                if angle < min_ang {
-                    min_ang = angle;
+            let d = det_3x3(i, min_k, *j);
+            if d < 0.0 {
+                min_k = *j;
+            } else if eq_float(d, 0.0, EPSILON) {
+                if (j.0 - i.0).powi(2) + (j.1 - i.1).powi(2) > (min_k.0 - i.0).powi(2) + (min_k.1 - i.1).powi(2) {
                     min_k = *j;
-                } else if eq_float(angle, min_ang, EPSILON) {
-                    if ((j.0 - i.0).powi(2) + (j.1 - i.1).powi(2))
-                        > ((min_k.0 - i.0).powi(2) + (min_k.1 - i.1).powi(2))
-                    {
-                        min_k = *j;
-                    }
-                }
-            } else {
-                let angle = get_angle_ord((i.0 - 1.0, i.1), i, *j);
-                if angle < min_ang {
-                    min_ang = angle;
-                    min_k = *j;
-                } else if eq_float(angle, min_ang, EPSILON) {
-                    if ((j.0 - i.0).powi(2) + (j.1 - i.1).powi(2))
-                        > ((min_k.0 - i.0).powi(2) + (min_k.1 - i.1).powi(2))
-                    {
-                        min_k = *j;
-                    }
                 }
             }
         }
 
         convex_hull.push(min_k);
-        previous = Some(i);
         i = min_k;
 
         if *ANIM.get().unwrap() {
@@ -235,24 +216,6 @@ fn jarvis(points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plotters
     return convex_hull;
 }
 
-fn get_angle_ord(prev: (f64, f64), i: (f64, f64), j: (f64, f64)) -> f64 {
-    //pozwala na porzadkowanie katow, najmniejsza wartosc odpowiada najmniejszemu katowi od prawej strony
-    let sign = cross_prod((i.0 - prev.0, i.1 - prev.1), (j.0 - i.0, j.1 - i.1)).signum();
-    let dot = dot_prod((i.0 - prev.0, i.1 - prev.1), (j.0 - i.0, j.1 - i.1));
-    let m = ((i.0 - prev.0).powi(2) + (i.1 - prev.1).powi(2)).sqrt()
-        * ((j.0 - i.0).powi(2) + (j.1 - i.1).powi(2)).sqrt();
-    let angle = (dot / m).acos();
-    return sign * angle;
-}
-
-fn dot_prod(a: (f64, f64), b: (f64, f64)) -> f64 {
-    a.0 * b.0 + a.1 * b.1
-}
-
-fn cross_prod(a: (f64, f64), b: (f64, f64)) -> f64 {
-    a.0 * b.1 - a.1 * b.0
-}
-
 fn det_3x3(a: (f64, f64), b: (f64, f64), c: (f64, f64)) -> f64 {
     a.0 * b.1 + b.0 * c.1 + c.0 * a.1 - c.0 * b.1 - a.1 * b.0 - a.0 * c.1
 }
@@ -265,6 +228,11 @@ fn orient(p0: (f64, f64), b: (f64, f64), c: (f64, f64)) -> Ordering {
     let d = det_3x3(p0, b, c);
     if eq_float(d, 0.0, EPSILON) {
         return Ordering::Equal;
+        // if (b.0 - p0.0).powi(2) + (b.1 - p0.1).powi(2) < (c.0 - p0.0).powi(2) + (c.1 - p0.1).powi(2) {
+        //     return Ordering::Less;
+        // } else {
+        //     return Ordering::Greater;
+        // }
     } else if d > 0.0 {
         return Ordering::Less;
     } else {
@@ -287,8 +255,9 @@ fn merge(left: Vec<(f64, f64)>, right: Vec<(f64, f64)>, p0: (f64, f64)) -> Vec<(
     let mut i = 0;
     let mut j = 0;
     while i < left.len() && j < right.len() {
-        if orient(p0, left[i], right[j]) == Ordering::Equal { //bierzemy tylko dalszy punkt bo sa wspolliniowe
-            if left[i].0 > right[j].0 {
+        if orient(p0, left[i], right[j]) == Ordering::Equal {
+            //if left[i].0 > right[j].0
+            if (left[i].0 - p0.0).powi(2) + (left[i].1 - p0.1).powi(2) > (right[j].0 - p0.0).powi(2) + (right[j].1 - p0.1).powi(2) {
                 merged.push(left[i]);
                 i += 1;
                 j += 1;
