@@ -21,8 +21,8 @@ fn main() {
     ANIM.set(conf.anim).unwrap();
     if conf.base {
         let sets = [
-            ("setA", set_a(-100.0..100.0, 100, SEED_A), -120.0..120.0),
-            ("setB", set_b((0.0, 0.0), 10.0, 100, SEED_B), -LABEL_MUL*20.0..LABEL_MUL*20.0),
+            ("setA", set_a(-100.0..100.0, 100000, SEED_A), -120.0..120.0),
+            ("setB", set_b((0.0, 0.0), 10.0, 100, SEED_B), -LABEL_MUL*10.0..LABEL_MUL*10.0),
             ("setC", set_c((-10.0, -10.0), (10.0, 10.0), 100, SEED_C), -15.0..15.0),
             ("setD", set_d((0.0, 0.0), 10.0, 25, 20, SEED_D), -2.0..12.0),
         ];
@@ -671,8 +671,8 @@ mod benches {
     }
 
     #[bench]
-    fn graham_benchmark_b_100000(b: &mut test::Bencher) {
-        let n = 100000;
+    fn graham_benchmark_b_20000(b: &mut test::Bencher) {
+        let n = 20000;
         let set = point_gen::set_b((0.0, 0.0), 10.0, n, SEED_B);
         b.iter(|| {
             black_box(graham_bench(set.clone()));
