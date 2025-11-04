@@ -509,7 +509,7 @@ fn create_dirs() {
 }
 mod bench {
     use crate::*;
-    fn graham_bench(mut points: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
+    pub fn graham_bench(mut points: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
         let pivot = points
             .iter()
             .min_by(|a, b| {
@@ -566,7 +566,7 @@ mod bench {
         stack
     }
 
-    fn jarvis_bench(pts: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
+    pub fn jarvis_bench(pts: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
 
         let start = pts
             .iter()
@@ -627,12 +627,280 @@ mod bench {
 
 #[cfg(test)]
 mod benches {
+    use std::hint::black_box;
+
     use crate::bench::*;
     use crate::*;
     extern crate test;
     
     #[bench]
-    fn graham_benchmark(b: &mut test::Bencher) {
-        println!("w");
+    fn graham_benchmark_a_100(b: &mut test::Bencher) {
+        let n = 100;
+        let set = point_gen::set_a(-100.0..100.0, n, SEED_A);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_a_1000(b: &mut test::Bencher) {
+        let n = 1000;
+        let set = point_gen::set_a(-100.0..100.0, n, SEED_A);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_a_10000(b: &mut test::Bencher) {
+        let n = 10000;
+        let set = point_gen::set_a(-100.0..100.0, n, SEED_A);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_a_100000(b: &mut test::Bencher) {
+        let n = 100000;
+        let set = point_gen::set_a(-100.0..100.0, n, SEED_A);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_b_100(b: &mut test::Bencher) {
+        let n = 100;
+        let set = point_gen::set_b((0.0, 0.0), 10.0, n, SEED_B);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_b_1000(b: &mut test::Bencher) {
+        let n = 1000;
+        let set = point_gen::set_b((0.0, 0.0), 10.0, n, SEED_B);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_b_10000(b: &mut test::Bencher) {
+        let n = 10000;
+        let set = point_gen::set_b((0.0, 0.0), 10.0, n, SEED_B);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_b_100000(b: &mut test::Bencher) {
+        let n = 100000;
+        let set = point_gen::set_b((0.0, 0.0), 10.0, n, SEED_B);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_c_100(b: &mut test::Bencher) {
+        let n = 100;
+        let set = point_gen::set_c((-10.0, -10.0), (10.0, 10.0), n, SEED_C);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_c_1000(b: &mut test::Bencher) {
+        let n = 1000;
+        let set = point_gen::set_c((-10.0, -10.0), (10.0, 10.0), n, SEED_C);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_c_10000(b: &mut test::Bencher) {
+        let n = 10000;
+        let set = point_gen::set_c((-10.0, -10.0), (10.0, 10.0), n, SEED_C);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_c_100000(b: &mut test::Bencher) {
+        let n = 100000;
+        let set = point_gen::set_c((-10.0, -10.0), (10.0, 10.0), n, SEED_C);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_d_25(b: &mut test::Bencher) {
+        let set = point_gen::set_d((0.0, 0.0), 10.0, 25, 20, SEED_D);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_d_250(b: &mut test::Bencher) {
+        let set = point_gen::set_d((0.0, 0.0), 10.0, 250, 200, SEED_D);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_d_2500(b: &mut test::Bencher) {
+        let set = point_gen::set_d((0.0, 0.0), 10.0, 2500, 2000, SEED_D);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn graham_benchmark_d_25000(b: &mut test::Bencher) {
+        let set = point_gen::set_d((0.0, 0.0), 10.0, 25000, 20000, SEED_D);
+        b.iter(|| {
+            black_box(graham_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_a_100(b: &mut test::Bencher) {
+        let n = 100;
+        let set = point_gen::set_a(-100.0..100.0, n, SEED_A);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_a_1000(b: &mut test::Bencher) {
+        let n = 1000;
+        let set = point_gen::set_a(-100.0..100.0, n, SEED_A);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_a_10000(b: &mut test::Bencher) {
+        let n = 10000;
+        let set = point_gen::set_a(-100.0..100.0, n, SEED_A);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_a_100000(b: &mut test::Bencher) {
+        let n = 100000;
+        let set = point_gen::set_a(-100.0..100.0, n, SEED_A);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_b_100(b: &mut test::Bencher) {
+        let n = 100;
+        let set = point_gen::set_b((0.0, 0.0), 10.0, n, SEED_B);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_b_1000(b: &mut test::Bencher) {
+        let n = 1000;
+        let set = point_gen::set_b((0.0, 0.0), 10.0, n, SEED_B);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_b_10000(b: &mut test::Bencher) {
+        let n = 10000;
+        let set = point_gen::set_b((0.0, 0.0), 10.0, n, SEED_B);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_c_100(b: &mut test::Bencher) {
+        let n = 100;
+        let set = point_gen::set_c((-10.0, -10.0), (10.0, 10.0), n, SEED_C);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_c_1000(b: &mut test::Bencher) {
+        let n = 1000;
+        let set = point_gen::set_c((-10.0, -10.0), (10.0, 10.0), n, SEED_C);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_c_10000(b: &mut test::Bencher) {
+        let n = 10000;
+        let set = point_gen::set_c((-10.0, -10.0), (10.0, 10.0), n, SEED_C);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_c_100000(b: &mut test::Bencher) {
+        let n = 100000;
+        let set = point_gen::set_c((-10.0, -10.0), (10.0, 10.0), n, SEED_C);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_d_25(b: &mut test::Bencher) {
+        let set = point_gen::set_d((0.0, 0.0), 10.0, 25, 20, SEED_D);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_d_250(b: &mut test::Bencher) {
+        let set = point_gen::set_d((0.0, 0.0), 10.0, 250, 200, SEED_D);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_d_2500(b: &mut test::Bencher) {
+        let set = point_gen::set_d((0.0, 0.0), 10.0, 2500, 2000, SEED_D);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_d_25000(b: &mut test::Bencher) {
+        let set = point_gen::set_d((0.0, 0.0), 10.0, 25000, 20000, SEED_D);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
     }
 }

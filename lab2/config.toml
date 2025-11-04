@@ -1,5 +1,5 @@
 base = true
-anim = true
+anim = false
 
 [set_a]
 range = [-16000.0, 50000.0]
