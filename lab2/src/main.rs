@@ -1,8 +1,8 @@
 #![feature(test)]
 
-use plotters::prelude::*;
+use plotters::{prelude::*, style::full_palette::{GREEN_800}};
 use serde::Deserialize;
-use std::{cmp::{Ordering, min}, io::Write, ops::Range, sync::OnceLock};
+use std::{cmp::Ordering, io::Write, ops::Range, sync::OnceLock};
 use crate::point_gen::*;
 
 const SEED_A: u64 = 4857;
@@ -62,7 +62,7 @@ fn main() {
 }
 
 fn graham(mut points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plotters::coord::Shift>, label_ranges: (Range<f64>, Range<f64>)) -> Vec<(f64, f64)> {
-    let original_pts = points.clone();
+    let original_points = points.clone();
 
     let pivot = points
         .iter()
@@ -109,12 +109,12 @@ fn graham(mut points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plot
             root.fill(&WHITE).unwrap();
             let mut ctx = draw_labels(&root, label_ranges.clone());
             ctx.draw_series(
-                original_pts
+                original_points
                     .iter()
                     .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
             ).unwrap();
             ctx.draw_series(LineSeries::new(stack.iter().cloned(), RED)).unwrap();
-            ctx.draw_series(stack.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, RED.filled()))).unwrap();
+            ctx.draw_series(stack.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, GREEN_800.filled()))).unwrap();
             root.present().unwrap();
         }
 
@@ -134,12 +134,12 @@ fn graham(mut points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plot
         root.fill(&WHITE).unwrap();
         let mut ctx = draw_labels(&root, label_ranges.clone());
         ctx.draw_series(
-            original_pts
+            original_points
                 .iter()
                 .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
         ).unwrap();
         ctx.draw_series(LineSeries::new(stack.iter().cloned().chain(std::iter::once(stack[0])) , RED)).unwrap();
-        ctx.draw_series(stack.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, RED.filled()))).unwrap();
+        ctx.draw_series(stack.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, GREEN_800.filled()))).unwrap();
         for _ in 0..40 {
             root.present().unwrap();
         }
@@ -150,17 +150,7 @@ fn graham(mut points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plot
 
 fn jarvis(points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plotters::coord::Shift>, label_ranges: (Range<f64>, Range<f64>)) -> Vec<(f64, f64)> {
 
-    let mut pts = points.clone();
-    // pts.sort_by(|a, b| {
-    //     if eq_float(a.0, b.0, EPSILON) {
-    //         a.1.partial_cmp(&b.1).unwrap()
-    //     } else {
-    //         a.0.partial_cmp(&b.0).unwrap()
-    //     }
-    // });
-    // pts.dedup_by(|a, b| eq_float(a.0, b.0, EPSILON) && eq_float(a.1, b.1, EPSILON));
-
-    let start = pts
+    let start = points
         .iter()
         .min_by(|a, b| {
             if a.1 == b.1 {
@@ -177,7 +167,7 @@ fn jarvis(points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plotters
 
     loop {
         let mut candidate: Option<(f64, f64)> = None;
-        for (anim_counter, &p) in pts.iter().enumerate() {
+        for (anim_counter, &p) in points.iter().enumerate() {
             if p == current {
                 continue;
             }
@@ -192,13 +182,13 @@ fn jarvis(points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plotters
                 root.fill(&WHITE).unwrap();
                 let mut ctx = draw_labels(&root, label_ranges.clone());
                 ctx.draw_series(
-                    pts
+                    points
                         .iter()
                         .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
                 ).unwrap();
                 ctx.draw_series(LineSeries::new(hull.iter().cloned(), RED)).unwrap();
                 ctx.draw_series(LineSeries::new(vec![*hull.last().unwrap(),p], BLUE)).unwrap();
-                ctx.draw_series(hull.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, RED.filled()))).unwrap();
+                ctx.draw_series(hull.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, GREEN_800.filled()))).unwrap();
                 root.present().unwrap();
             }
 
@@ -231,12 +221,12 @@ fn jarvis(points: Vec<(f64, f64)>, root: DrawingArea<BitMapBackend<'_>, plotters
         root.fill(&WHITE).unwrap();
         let mut ctx = draw_labels(&root, label_ranges.clone());
         ctx.draw_series(
-            pts
+            points
                 .iter()
                 .map(|(x, y)| Circle::new((*x, *y), 2, BLACK.filled())),
         ).unwrap();
         ctx.draw_series(LineSeries::new(hull.iter().cloned().chain(std::iter::once(hull[0])) , RED)).unwrap();
-        ctx.draw_series(hull.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, RED.filled()))).unwrap();
+        ctx.draw_series(hull.iter().cloned().map(|(x,y)| Circle::new((x,y), 2, GREEN_800.filled()))).unwrap();
         for _ in 0..20 {
             root.present().unwrap();
         }
@@ -250,22 +240,6 @@ fn det_3x3(a: (f64, f64), b: (f64, f64), c: (f64, f64)) -> f64 {
 
 fn eq_float(a: f64, b: f64, epsilon: f64) -> bool {
     (a - b).abs() <= epsilon
-}
-
-fn orient(p0: (f64, f64), b: (f64, f64), c: (f64, f64)) -> Ordering {
-    let d = det_3x3(p0, b, c);
-    if eq_float(d, 0.0, EPSILON) {
-        return Ordering::Equal;
-        // if (b.0 - p0.0).powi(2) + (b.1 - p0.1).powi(2) < (c.0 - p0.0).powi(2) + (c.1 - p0.1).powi(2) {
-        //     return Ordering::Less;
-        // } else {
-        //     return Ordering::Greater;
-        // }
-    } else if d > 0.0 {
-        return Ordering::Less;
-    } else {
-        return Ordering::Greater;
-    }
 }
 
 mod point_gen {
@@ -427,11 +401,11 @@ pub fn draw_set_convex(
     ctx.draw_series(
         convex_hull
             .iter()
-            .map(|(x, y)| Circle::new((*x, *y), 2, RED.filled())),
+            .map(|(x, y)| Circle::new((*x, *y), 2, GREEN_800.filled())),
     )?;
     let first = convex_hull[0];
     ctx.draw_series(LineSeries::new(convex_hull.into_iter().chain(std::iter::once(first)), RED)).unwrap();
-    root.present().expect("Unable to write result to file, please make sure 'plotters-doc-data' dir exists under current dir");
+    root.present().unwrap();
     Ok(())
 }
 
@@ -566,9 +540,9 @@ mod bench {
         stack
     }
 
-    pub fn jarvis_bench(pts: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
+    pub fn jarvis_bench(points: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
 
-        let start = pts
+        let start = points
             .iter()
             .min_by(|a, b| {
                 if a.1 == b.1 {
@@ -585,7 +559,7 @@ mod bench {
 
         loop {
             let mut candidate: Option<(f64, f64)> = None;
-            for &p in pts.iter() {
+            for &p in points.iter() {
                 if p == current {
                     continue;
                 }
@@ -830,6 +804,15 @@ mod benches {
     #[bench]
     fn jarvis_benchmark_b_10000(b: &mut test::Bencher) {
         let n = 10000;
+        let set = point_gen::set_b((0.0, 0.0), 10.0, n, SEED_B);
+        b.iter(|| {
+            black_box(jarvis_bench(set.clone()));
+        });
+    }
+
+    #[bench]
+    fn jarvis_benchmark_b_20000(b: &mut test::Bencher) {
+        let n = 20000;
         let set = point_gen::set_b((0.0, 0.0), 10.0, n, SEED_B);
         b.iter(|| {
             black_box(jarvis_bench(set.clone()));
