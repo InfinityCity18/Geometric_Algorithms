@@ -27,7 +27,7 @@ Program został uruchomiony na komputerze z następującymi specyfikacjami:
 - *Procesor -* AMD Ryzen 7 7840HS
 - *Język -* Python 3.14.0
 
-Ćwiczenie realizowane było w środowisku _Jupiter_,
+Ćwiczenie realizowane było w środowisku _Jupyter_,
 do wizualizacji zostało użyte narzędzie stworzone przez koło naukowe _BIT_ 
 oraz następujące biblioteki:
 - *matplotlib*
@@ -39,7 +39,7 @@ Do obliczeń została użyta tolerancja dla zera $epsilon = 10^(-9)$, oraz liczb
 
 = Opis ćwiczenia
 
-Ćwiczenie polegało na implementacji algorytmu zamiatania w celu wyznaczenia przecięć odcinków na płaszczyźnie. Obejmowało to sprawdzenie istnienia przecięcia oraz wyznaczenia wszystkich przecięć.
+Ćwiczenie polegało na implementacji algorytmu zamiatania w celu wyznaczenia przecięć odcinków na płaszczyźnie. Obejmowało to sprawdzenie istnienia przecięcia oraz wyznaczenia wszystkich punktów przecięć.
 
 = Wstęp teoretyczny
 
@@ -73,9 +73,9 @@ Algorytm zamiatania polega na ustaleniu pewnej hiperpłaszczyzny, w naszym przyp
 
 Do realizacji algorytmu zamiatania, jako strukturę stanu $T$ wykorzystano _SortedSet_ z biblioteki _sortedcontainers_. Zapewnia ona łatwe porządkowanie odcinków oraz operacje dodawania, usuwania, wyszukiwania w czasie $O(log n)$. Dzięki temu jesteśmy w stanie efektywnie sprawdzać czy sąsiednie odcinki się przecinają.
 
-W przypadku struktury zdarzeń $Q$, do algorytmu weryfikacji istnienia przecięcia wykorzystana została lista początków i końców odcinków posortowana malejąco aby wykorzystać operację _.pop()_, co pozwala uniknąć przesuwania pozostałych elementów w pamięci. Takie rozwiązanie jest wystarczające ze względu na zakończenie algorytmu w przypadku wykrycia przecięcia, co oznacza brak konieczności dodawania punktów przecięć do struktury zdarzeń.
+W przypadku struktury zdarzeń $Q$, do algorytmu weryfikacji istnienia przecięcia wykorzystana została lista początków i końców odcinków posortowana malejąco, aby wykorzystać operację _.pop()_, co pozwala uniknąć przesuwania pozostałych elementów w pamięci. Takie rozwiązanie jest wystarczające ze względu na zakończenie algorytmu w przypadku wykrycia przecięcia, co oznacza brak konieczności dodawania punktów przecięć do struktury zdarzeń.
 
-Natomiast w algorytmie wyznaczania przecięć zaszła potrzeba zmiany struktury danych na kopiec, z powodu potrzeby dodawania punktu przecięcia oraz dostępu do najmniejszej współrzędnej $x$ w czasie $O(log n)$.
+Natomiast w algorytmie wyznaczania przecięć konieczna była zmiana struktury danych na kopiec, z powodu potrzeby dodawania punktu przecięcia oraz dostępu do najmniejszej współrzędnej $x$ w czasie $O(log n)$.
 
 Dla prostego użytku zostały zaimplementowane klasy _Point_ oraz _Section_ oznaczające odpowiednio punkt oraz odcinek. Mają one zdefiniowane operatory porównywania na potrzebę działania struktury stanu i zdarzeń.
 
@@ -93,7 +93,7 @@ Następnie ściągamy punkty z kopca dopóki nie jest pusty. Dla wyjętego punkt
 2. Punkt jest prawym końcem odcinka: \
    Aktualizujemy położenie miotły, sprawdzamy przecięcie między sąsiadami tego odcinka, jeśli istnieją. Po czym usuwamy odcinek z struktury stanu.
 3. Punkt jest przecięciem: \
-   Zamieniamy kolejność odcinków których dotyczy przecięcie w strukturze stanu. Ponieważ w punkcie przecięcia jest to niejednoznaczne to ustawiamy położenie miotły na $x + epsilon$, gdzie $epsilon = 10^-9$. Przetwarzamy sąsiadów tych odcinków po zamianie.
+   Zamieniamy kolejność odcinków których dotyczy przecięcie w strukturze stanu. Ponieważ w punkcie przecięcia jest to niejednoznaczne, to ustawiamy położenie miotły na $x + epsilon$, gdzie $epsilon = 10^-9$. Przetwarzamy sąsiadów tych odcinków po zamianie.
 
 Ponieważ jest możliwość, że przecięcie zostanie przetworzone więcej niż jeden raz, używany jest zbiór który pozwala sprawdzić czy dane przecięcie już nastąpiło.
 
@@ -167,7 +167,7 @@ Poniżej zestawiono wynik wizualizacji przecięć punktów odcinków w wybranych
   )
 )
 
-Algorytm poprawnie poradził sobie z zbiorami testowymi. Zbiór A testował algorytm dla losowych danych. Dla zbioru B przewidujemy podwójne zliczenie przecięcia w przypadku niepoprawnego algorytmu, w tabeli 1 mamy dowód poprawności zliczania punktów przecięć dla zbioru B. Zbiór C testował przypadek wielu przecięć. Dla zbioru D poprawnie nie został zakwalifikowany żaden punkt jako przecięcie odcinków.
+Algorytm poprawnie poradził sobie ze zbiorami testowymi. Zbiór A testował algorytm dla losowych danych. Dla zbioru B przewidujemy podwójne zliczenie przecięcia w przypadku niepoprawnego algorytmu, w tabeli 1 mamy dowód poprawności zliczania punktów przecięć dla zbioru B. Zbiór C testował przypadek wielu przecięć. Dla zbioru D poprawnie nie został zakwalifikowany żaden punkt jako przecięcie odcinków.
 
 = Wnioski
 
