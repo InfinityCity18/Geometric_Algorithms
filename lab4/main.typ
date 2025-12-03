@@ -17,7 +17,7 @@
   #text(size: 1.5em)[*Ćwiczenie 4 - Przecinanie odcinków*] \
 
   #text(size: 1.2em)[Jakub Własiewicz - Grupa 2 - Poniedziałek 13:00] \
-  #text(size: 1.2em)[2025-12-02]
+  #text(size: 1.2em)[2025-12-03]
 ]
 
 = Dane techniczne
@@ -75,5 +75,22 @@ Do realizacji algorytmu zamiatania, jako strukturę stanu $T$ wykorzystano _Sort
 
 W przypadku struktury zdarzeń $Q$, do algorytmu weryfikacji istnienia przecięcia wykorzystana została lista początków i końców odcinków posortowana malejąco aby wykorzystać operację _.pop()_, co pozwala uniknąć przesuwania pozostałych elementów w pamięci. Takie rozwiązanie jest wystarczające ze względu na zakończenie algorytmu w przypadku wykrycia przecięcia, co oznacza brak konieczności dodawania punktów przecięć do struktury zdarzeń.
 
+Natomiast w algorytmie wyznaczania przecięć zaszła potrzeba zmiany struktury danych na kopiec, z powodu potrzeby dodawania punktu przecięcia oraz dostępu do najmniejszej współrzędnej $x$ w czasie $O(log n)$.
 
+Dla prostego użytku zostały zaimplementowane klasy _Point_ oraz _Section_ oznaczające odpowiednio punkt oraz odcinek. Mają one zdefiniowane operatory porównywania na potrzebę działania struktury stanu i zdarzeń.
 
+== Sprawdzanie przecięcia dwóch odcinków
+
+Aby sprawdzić czy dwa odcinki się przecinają stworzona została funkcja _check_intersections_ zwracająca punkt przecięcia lub _None_, jeżeli takiego nie ma. W funkcji porównywane są współczynniki prostych, jeżeli są równe to punkt przecięcia nie istnieje albo jest ich nieskończenie wiele, a taki przypadek wykluczyliśmy w założeniach. Następnie, wyznaczona jest współrzędna $x$ punktu przecięcia za pomocą układu równań i weryfikowana czy zawiera się w zakresach obu odcinków. Jeżeli jest to spełnione, współrzędną $y$ otrzymujemy za pomocą równania jednej z prostych, zwracamy krotkę $(x, y)$.
+
+== Implementacja algorytmu wyznaczającego punkty przecięcia
+
+Algorytm najpierw tworzy kopiec i umieszcza na nim wszystkie początki i końce odcinków, rozróżniając czy to lewy czy prawy koniec oraz ponumerowaną listę odcinków, aby zapewnić bezproblemowy dostęp do każdego z nich.
+Następnie ściągamy punkty z kopca dopóki nie jest pusty. Dla wyjętego punktu, przypisujemy jego współczynnik $x$ do zmiennej statycznej, oznacza ona położenie miotły; jest potrzebna do porównywania odcinków. Potem zczytujemy odcinek do którego należy z poprzednio utworzonej listy. Po tym następuje rozgałęzienie ze względu na typ zdarzenia:
+
+1. Punkt jest lewym końcem odcinka: \
+   Dodajemy odcinek do struktury stanu $T$ oraz aktualizujemy statyczną zmienną położenia miotły. Następnie przetwarzamy sąsiadów odcinka, sprawdzając czy występują punkty przecięcia, jeśli tak, dodajemy je na kopiec.
+2. Punkt jest prawym końcem odcinka: \
+   Aktualizujemy położenie miotły, sprawdzamy przecięcie między sąsiadami tego odcinka, jeśli istnieją. Po czym usuwamy odcinek z struktury stanu.
+3. Punkt jest przecięciem: \
+   Zamieniamy kolejność odcinków których dotyczy przecięcie w strukturze stanu. Ponieważ w punkcie przecięcia jest to niejednoznaczne to ustawiamy położenie miotły na $x + epsilon$, gdzie $epsilon = 10^-9$.
