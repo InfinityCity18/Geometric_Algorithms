@@ -93,4 +93,86 @@ Następnie ściągamy punkty z kopca dopóki nie jest pusty. Dla wyjętego punkt
 2. Punkt jest prawym końcem odcinka: \
    Aktualizujemy położenie miotły, sprawdzamy przecięcie między sąsiadami tego odcinka, jeśli istnieją. Po czym usuwamy odcinek z struktury stanu.
 3. Punkt jest przecięciem: \
-   Zamieniamy kolejność odcinków których dotyczy przecięcie w strukturze stanu. Ponieważ w punkcie przecięcia jest to niejednoznaczne to ustawiamy położenie miotły na $x + epsilon$, gdzie $epsilon = 10^-9$.
+   Zamieniamy kolejność odcinków których dotyczy przecięcie w strukturze stanu. Ponieważ w punkcie przecięcia jest to niejednoznaczne to ustawiamy położenie miotły na $x + epsilon$, gdzie $epsilon = 10^-9$. Przetwarzamy sąsiadów tych odcinków po zamianie.
+
+Ponieważ jest możliwość, że przecięcie zostanie przetworzone więcej niż jeden raz, używany jest zbiór który pozwala sprawdzić czy dane przecięcie już nastąpiło.
+
+== Wybrane zbiory testowe
+
+#grid(
+  columns: 2,
+  rows: (33%,auto)
+)[
+  #figure(
+    caption: [Zbiór A: 15 losowo wygenerowanych odcinków o punktach ze współrzędnymi z zakresu $[-1000,1000]$],
+    image("typst/z1.png")
+  )
+][
+  #figure(
+    caption: [Zbiór B: Dwa przecinające się odcinki, oraz mniejsze ustawione pomiędzy nimi],
+    image("typst/z2.png")
+  )
+][
+  #figure(
+    caption: [Zbiór C: 2 odcinki przecinające pozostałe odcinki],
+    image("typst/z3.png")
+  )
+][
+  #figure(
+    caption: [Zbiór D: 11 nieprzecinających się odcinków],
+    image("typst/z4.png")
+  )
+]
+
+#pagebreak(weak: true)
+
+= Analiza wyników
+
+Poniżej zestawiono wynik wizualizacji przecięć punktów odcinków w wybranych zbiorach, punkty te są zaznaczone kolorem czerwonym.
+
+#grid(
+  columns: 2,
+  rows: (30%,auto)
+)[
+  #figure(
+    caption: [Punkty przecięć dla zbioru A],
+    image("typst/zd1.png")
+  )
+][
+  #figure(
+    caption: [Punkty przecięć dla zbioru B],
+    image("typst/zd2.png")
+  )
+][
+  #figure(
+    caption: [Punkty przecięć dla zbioru C],
+    image("typst/zd3.png")
+  )
+][
+  #figure(
+    caption: [Punkty przecięć dla zbioru D],
+    image("typst/zd4.png")
+  )
+]
+
+#figure(
+  caption: [Liczba punktów przecięć wyznaczonych dla zbiorów testowych],
+  table(
+    columns: 2,
+    table.header([Zbiór], [Liczba punktów przecięć]),
+    [A], [17],
+    [B], [2],
+    [C], [26],
+    [D], [0],
+  )
+)
+
+Algorytm poprawnie poradził sobie z zbiorami testowymi. Zbiór A testował algorytm dla losowych danych. Dla zbioru B przewidujemy podwójne zliczenie przecięcia w przypadku niepoprawnego algorytmu, w tabeli 1 mamy dowód poprawności zliczania punktów przecięć dla zbioru B. Zbiór C testował przypadek wielu przecięć. Dla zbioru D poprawnie nie został zakwalifikowany żaden punkt jako przecięcie odcinków.
+
+= Wnioski
+
+Algorytm zamiatania poprawnie zadziałał dla wszystkich zbiorów testowych. Ważnym okazał się wybór struktury zarówno zdarzeń jak i stanu. Dzięki złożoności czasowej tych struktur i metodzie zamiatania, jesteśmy w stanie osiągnąć lepszą złożoność od $O(n^2)$, zależącą od liczby przecięć.
+
+Animacje algorytmu w postaci plików _.gif_ zostały załączone w archiwum dołączonym ze sprawozdaniem.
+
+
